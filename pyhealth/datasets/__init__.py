@@ -70,6 +70,12 @@ from .sleepedf import SleepEDFDataset
 from .bmd_hs import BMDHSDataset
 from .support2 import Support2Dataset
 from .synthea_csv import SyntheaCSVDataset as SyntheaCSVDataset
+from .synthetic_liver import (
+    MAS4_FEATURES,
+    MAS6_FEATURES,
+    create_synthetic_liver_dataset,
+    generate_synthetic_pbcseq,
+)
 from .tcga_prad import TCGAPRADDataset
 from .splitter import (
     PatientSplit as PatientSplit,

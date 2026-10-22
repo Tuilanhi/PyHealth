@@ -21,6 +21,7 @@ from .multiclass import multiclass_metrics_fn
 from .multilabel import multilabel_metrics_fn
 from .ranking import ranking_metrics_fn
 from .regression import regression_metrics_fn
+from .survival import concordance_index
 
 __all__ = [
     "ComprehensivenessMetric",
@@ -34,6 +35,7 @@ __all__ = [
     "compute_discriminator_privacy",
     "compute_mle",
     "compute_prevalence_metrics",
+    "concordance_index",
     "ddi_rate_score",
     "evaluate_attribution",
     "evaluate_synthetic_ehr",
