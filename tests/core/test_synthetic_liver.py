@@ -109,6 +109,11 @@ class TestCreateSyntheticLiverDataset(unittest.TestCase):
         self.assertEqual(dataset.input_processors["features"].size(), 6)
         self.assertEqual(dataset[0]["features"].shape, (6,))
 
+    def test_rejects_generator_arguments_with_visit_table(self):
+        visits = generate_synthetic_pbcseq(n_patients=3, seed=5)
+        with self.assertRaises(ValueError):
+            create_synthetic_liver_dataset(visits=visits, missing_rate=0.3)
+
     def test_uses_given_visit_table(self):
         visits = generate_synthetic_pbcseq(n_patients=3, seed=5)
         dataset = create_synthetic_liver_dataset(visits=visits)

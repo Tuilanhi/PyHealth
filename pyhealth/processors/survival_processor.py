@@ -240,6 +240,7 @@ class StandardizedTensorProcessor(FeatureProcessor):
                 the number of features or dimensions.
         """
         rows = []
+        n_dim = None
         for sample in samples:
             if field not in sample or sample[field] is None:
                 continue
@@ -248,9 +249,9 @@ class StandardizedTensorProcessor(FeatureProcessor):
                 raise ValueError(
                     f"{field}: expected shape (F,) or (T, F), got {array.shape}."
                 )
-            if self._n_dim is None:
-                self._n_dim = array.ndim
-            elif array.ndim != self._n_dim:
+            if n_dim is None:
+                n_dim = array.ndim
+            elif array.ndim != n_dim:
                 raise ValueError(f"{field}: samples mix 1D and 2D feature values.")
             rows.append(array.reshape(-1, array.shape[-1]))
         if not rows:
@@ -277,6 +278,7 @@ class StandardizedTensorProcessor(FeatureProcessor):
         std = np.sqrt(var)
         self.mean = mean
         self.std = np.where(std > 0, std, 1.0)
+        self._n_dim = n_dim
 
     def process(self, value: Any) -> torch.Tensor:
         """Standardizes one sample's features.
@@ -289,11 +291,16 @@ class StandardizedTensorProcessor(FeatureProcessor):
 
         Raises:
             RuntimeError: If called before ``fit()``.
-            ValueError: If the feature count differs from the fitted one.
+            ValueError: If the shape layout or feature count differs from the
+                fitted one.
         """
         if self.mean is None or self.std is None:
             raise RuntimeError("StandardizedTensorProcessor.fit must be called first.")
         array = np.asarray(value, dtype=np.float64)
+        if array.ndim != self._n_dim:
+            raise ValueError(
+                f"Expected {self._n_dim}D feature values, got shape {array.shape}."
+            )
         if array.shape[-1] != self.mean.shape[0]:
             raise ValueError(
                 f"Expected {self.mean.shape[0]} features, got {array.shape[-1]}."

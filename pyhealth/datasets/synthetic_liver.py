@@ -88,7 +88,8 @@ def generate_synthetic_pbcseq(
         feature_names: Lab columns to generate; any number of features.
         seed: Seed for the random generator. The same arguments give the same
             table.
-        max_years: Longest follow-up, in years.
+        max_years: Longest follow-up, in years. Outcome days may be shifted a
+            few days later to keep every outcome day unique.
         baseline_hazard: Event rate per year at average severity.
         transplant_fraction: Probability that a patient is scheduled for a
             transplant, which ends follow-up with status 1 if it comes first.
@@ -208,13 +209,18 @@ def create_synthetic_liver_dataset(
         feature_names: Lab columns to generate and use, in order.
         seed: Seed for :func:`generate_synthetic_pbcseq`.
         event: ``"death"`` (transplant censored) or ``"death_or_transplant"``.
-        visits: An existing visit table to use instead of generating one;
-            ``n_patients``, ``seed``, and ``generator_kwargs`` are then ignored.
+        visits: An existing visit table to use instead of generating one.
+            ``n_patients`` and ``seed`` are then unused, ``feature_names`` must
+            name its feature columns, and ``generator_kwargs`` must be empty.
         **generator_kwargs: Extra arguments for
             :func:`generate_synthetic_pbcseq`.
 
     Returns:
         An in-memory ``SampleDataset``. Its models have ``mode = None``.
+
+    Raises:
+        ValueError: If ``visits`` is given together with generator arguments,
+            or lacks a column named in ``feature_names``.
 
     Examples:
         >>> from pyhealth.datasets import get_dataloader
@@ -223,6 +229,11 @@ def create_synthetic_liver_dataset(
         >>> batch["features"].shape[1], batch["survival_interval"].shape[1]
         (4, 3)
     """
+    if visits is not None and generator_kwargs:
+        raise ValueError(
+            f"Generator arguments {sorted(generator_kwargs)} are ignored when "
+            "`visits` is given."
+        )
     if visits is None:
         visits = generate_synthetic_pbcseq(
             n_patients=n_patients,

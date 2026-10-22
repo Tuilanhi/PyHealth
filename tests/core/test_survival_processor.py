@@ -111,6 +111,18 @@ class TestStandardizedTensorProcessor(unittest.TestCase):
         torch.testing.assert_close(out, torch.tensor([[0.0], [0.0]]))
         self.assertEqual(processor.spatial(), (True, False))
 
+    def test_refit_with_other_layout(self):
+        processor = StandardizedTensorProcessor()
+        processor.fit([{"x": [1.0, 2.0]}], "x")
+        processor.fit([{"x": [[1.0, 2.0], [3.0, 4.0]]}], "x")
+        self.assertEqual(processor.dim(), (2,))
+
+    def test_rejects_wrong_rank(self):
+        processor = StandardizedTensorProcessor()
+        processor.fit([{"x": [1.0, 2.0]}], "x")
+        with self.assertRaises(ValueError):
+            processor.process([[1.0, 2.0], [3.0, 4.0]])
+
     def test_errors(self):
         processor = StandardizedTensorProcessor()
         with self.assertRaises(RuntimeError):

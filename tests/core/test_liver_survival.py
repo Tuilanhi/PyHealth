@@ -169,6 +169,17 @@ class TestBuildCountingProcessValidation(unittest.TestCase):
         with self.assertRaises(ValueError):
             self._build([0, 300, 300])
 
+    def test_rejects_non_finite_day(self):
+        with self.assertRaises(ValueError):
+            self._build([0, NAN, 200])
+
+    def test_rejects_non_integer_status(self):
+        frame = _fixture()
+        frame["status"] = frame["status"].astype(float)
+        frame.loc[frame["id"] == 1, "status"] = 2.6
+        with self.assertRaises(ValueError):
+            counting_process_samples_from_frame(frame, ["bili"])
+
     def test_rejects_negative_day(self):
         with self.assertRaises(ValueError):
             self._build([-1, 300])

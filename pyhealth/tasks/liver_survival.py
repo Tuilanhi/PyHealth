@@ -111,8 +111,8 @@ def build_counting_process_samples(
         (``[start, stop, event]`` in years).
 
     Raises:
-        ValueError: If the visits are empty, unsorted, negative, at or after
-            ``futime``, or do not match ``features``.
+        ValueError: If the visits are empty, non-finite, unsorted, negative,
+            at or after ``futime``, or do not match ``features``.
 
     Examples:
         >>> rows = build_counting_process_samples(
@@ -126,6 +126,8 @@ def build_counting_process_samples(
         raise ValueError(f"Patient {patient_id}: needs at least one visit.")
     if not math.isfinite(futime):
         raise ValueError(f"Patient {patient_id}: futime must be finite.")
+    if not np.all(np.isfinite(days)):
+        raise ValueError(f"Patient {patient_id}: visit days must be finite.")
     if days[0] < 0 or np.any(np.diff(days) <= 0):
         raise ValueError(
             f"Patient {patient_id}: visit days must be >= 0 and strictly increasing."
@@ -181,8 +183,8 @@ def counting_process_samples_from_frame(
         patient id and visit day.
 
     Raises:
-        ValueError: If a required column is missing, or ``futime`` or
-            ``status`` varies within a patient.
+        ValueError: If a required column is missing, ``futime`` or
+            ``status`` varies within a patient, or ``status`` is not an integer.
     """
     required = ["id", "day", "futime", "status", *feature_names]
     missing = [column for column in required if column not in visits.columns]
@@ -195,13 +197,18 @@ def counting_process_samples_from_frame(
             raise ValueError(
                 f"Patient {patient_id}: futime and status must be constant."
             )
+        status = float(rows["status"].iloc[0])
+        if not status.is_integer():
+            raise ValueError(
+                f"Patient {patient_id}: status must be 0, 1, or 2, got {status}."
+            )
         samples.extend(
             build_counting_process_samples(
                 patient_id=str(patient_id),
                 visit_days=rows["day"].to_numpy(dtype=np.float64),
                 features=rows[list(feature_names)].to_numpy(dtype=np.float64),
                 futime=float(rows["futime"].iloc[0]),
-                status=int(rows["status"].iloc[0]),
+                status=int(status),
                 event=event,
             )
         )
