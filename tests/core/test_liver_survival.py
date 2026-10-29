@@ -10,6 +10,7 @@ import pandas as pd
 from pyhealth.tasks.liver_survival import (
     DAYS_PER_YEAR,
     build_counting_process_samples,
+    build_landmark_samples,
     counting_process_samples_from_frame,
     event_indicator,
     forward_fill,
@@ -150,6 +151,28 @@ class TestCountingProcessSamples(unittest.TestCase):
             [s["features"] for s in patient1[:3]],
             [s["features"] for s in self.by_patient["1"][:3]],
         )
+
+
+class TestLandmarkSamples(unittest.TestCase):
+    """Builds [duration, event] samples counted from each visit."""
+
+    def test_durations_from_each_visit(self):
+        rows = build_landmark_samples(
+            "1", [0, 182, 365, 730], [[1.0], [NAN], [2.0], [3.0]], futime=913, status=2
+        )
+        np.testing.assert_allclose(
+            [row["survival"][0] for row in rows],
+            np.array([913, 731, 548, 183]) / DAYS_PER_YEAR,
+        )
+        self.assertEqual([row["survival"][1] for row in rows], [1, 1, 1, 1])
+        self.assertEqual([row["features"][0] for row in rows], [1.0, 1.0, 2.0, 3.0])
+        self.assertEqual(rows[1]["landmark_time"], 182 / DAYS_PER_YEAR)
+
+    def test_censored_and_validated_like_counting_process(self):
+        rows = build_landmark_samples("2", [0], [[1.0]], futime=100, status=1)
+        self.assertEqual(rows[0]["survival"][1], 0)
+        with self.assertRaises(ValueError):
+            build_landmark_samples("2", [0, 100], [[1.0], [2.0]], futime=100, status=0)
 
 
 class TestBuildCountingProcessValidation(unittest.TestCase):

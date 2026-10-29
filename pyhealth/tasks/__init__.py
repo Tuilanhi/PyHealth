@@ -48,6 +48,7 @@ from .mortality_prediction import (
     MultimodalMortalityPredictionMIMIC4,
 )
 from .survival_preprocess_support2 import SurvivalPreprocessSupport2
+from .liver_survival import LongitudinalLiverSurvival
 from .mortality_prediction_stagenet_mimic4 import (
     MortalityPredictionStageNetMIMIC4,
 )

@@ -37,6 +37,8 @@ Available Processors
 - ``RegressionLabelProcessor``: Continuous regression targets
 - ``TimeseriesBinaryLabelProcessor``: Binary label per time step (``"timeseries_binary"``), returned as ``(value, mask)`` on the time grid of the input time series
 - ``TimeseriesRegressionLabelProcessor``: Real-valued label per time step (``"timeseries_regression"``)
+- ``SurvivalIntervalProcessor``: Counting-process survival label ``[start, stop, event]`` (``"survival_interval"``)
+- ``SurvivalLabelProcessor``: Right-censored survival label ``[duration, event]`` (``"survival"``)
 
 **Data Type Processors:**
 
@@ -553,6 +555,8 @@ API Reference
     processors/pyhealth.processors.TimeseriesLabelProcessor
     processors/pyhealth.processors.TimeseriesBinaryLabelProcessor
     processors/pyhealth.processors.TimeseriesRegressionLabelProcessor
+    processors/pyhealth.processors.SurvivalIntervalProcessor
+    processors/pyhealth.processors.SurvivalLabelProcessor
     processors/pyhealth.processors.ImageProcessor
     processors/pyhealth.processors.TextProcessor
     processors/pyhealth.processors.TupleTimeTextProcessor

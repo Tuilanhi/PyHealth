@@ -310,6 +310,8 @@ Available Datasets
     datasets/pyhealth.datasets.SleepEDFDataset
     datasets/pyhealth.datasets.EHRShotDataset
     datasets/pyhealth.datasets.Support2Dataset
+    datasets/pyhealth.datasets.PBCSeqDataset
+    datasets/pyhealth.datasets.synthetic_liver
     datasets/pyhealth.datasets.BMDHSDataset
     datasets/pyhealth.datasets.COVID19CXRDataset
     datasets/pyhealth.datasets.ChestXray14Dataset
