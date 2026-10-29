@@ -208,13 +208,27 @@ def build_landmark_samples(
 
     Each visit is a prediction time: its features are the labs known at that
     visit, and its label is the time from the visit to the patient's event or
-    censoring. Arguments and validation match
-    :func:`build_counting_process_samples`.
+    censoring.
+
+    Args:
+        patient_id: The patient identifier.
+        visit_days: Visit times in days since enrollment, strictly increasing,
+            starting at 0 or later and ending before ``futime``.
+        features: Lab values per visit, shape ``(K, F)``. Missing values (NaN)
+            are forward-filled from earlier visits; values never observed stay
+            NaN for the feature processor to impute.
+        futime: Days from enrollment to the event or censoring.
+        status: 0 (censored), 1 (transplant), or 2 (death).
+        event: Event definition passed to :func:`event_indicator`.
 
     Returns:
         A list of ``K`` sample dicts with keys ``patient_id``, ``visit_id``,
         ``landmark_time`` (visit time in years), ``features``, and
         ``survival`` (``[duration, event]``, duration in years).
+
+    Raises:
+        ValueError: If the visits are empty, non-finite, unsorted, negative,
+            at or after ``futime``, or do not match ``features``.
 
     Examples:
         >>> rows = build_landmark_samples(
