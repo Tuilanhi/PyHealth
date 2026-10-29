@@ -57,11 +57,7 @@ from .ignore_processor import IgnoreProcessor
 from .temporal_timeseries_processor import TemporalTimeseriesProcessor
 from .tuple_time_text_processor import TupleTimeTextProcessor
 from .cehr_processor import CehrProcessor, ConceptVocab
-from .survival_processor import (
-    StandardizedTensorProcessor,
-    SurvivalIntervalProcessor,
-    SurvivalLabelProcessor,
-)
+from .survival_processor import SurvivalIntervalProcessor, SurvivalLabelProcessor
 
 # Expose public API
 from .base_processor import (
@@ -97,7 +93,6 @@ __all__ = [
     "TupleTimeTextProcessor",
     "CehrProcessor",
     "ConceptVocab",
-    "StandardizedTensorProcessor",
     "SurvivalIntervalProcessor",
     "SurvivalLabelProcessor",
 ]

@@ -76,10 +76,19 @@ class TestCreateSyntheticLiverDataset(unittest.TestCase):
         cls.batch = next(iter(loader))
 
     def test_schema(self):
-        self.assertEqual(self.dataset.input_schema, {"features": "standardized_tensor"})
+        self.assertEqual(
+            self.dataset.input_schema,
+            {
+                "features": (
+                    "tensor",
+                    {"normalization": "zscore", "impute_strategy": "zero"},
+                )
+            },
+        )
         self.assertEqual(
             self.dataset.output_schema, {"survival_interval": "survival_interval"}
         )
+        self.assertTrue(self.dataset.input_processors["features"].learns_statistics)
 
     def test_full_batch_shapes(self):
         n = len(self.dataset)

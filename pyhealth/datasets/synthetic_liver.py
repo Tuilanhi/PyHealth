@@ -23,7 +23,7 @@ from collections.abc import Sequence
 import numpy as np
 import pandas as pd
 
-from ..processors import StandardizedTensorProcessor
+from ..processors import TensorProcessor
 from ..tasks.liver_survival import (
     DAYS_PER_YEAR,
     STATUS_CENSORED,
@@ -59,6 +59,9 @@ FEATURE_PROFILES: dict[str, tuple[float, float, float]] = {
 """Lab profiles. Labs not listed here get ``(1.0, 0.3, 0.0)``."""
 
 _DEFAULT_PROFILE = (1.0, 0.3, 0.0)
+
+FEATURE_PROCESSOR_KWARGS = {"normalization": "zscore", "impute_strategy": "zero"}
+"""``TensorProcessor`` options for lab features: z-score, then missing -> mean."""
 
 
 def _visit_schedule(rng: np.random.Generator, max_years: float) -> np.ndarray:
@@ -193,7 +196,8 @@ def create_synthetic_liver_dataset(
 
     Each sample is one at-risk interval with:
 
-    - ``features``: the visit's labs, z-scored (``"standardized_tensor"``);
+    - ``features``: the visit's labs, z-scored by ``TensorProcessor``
+      (``normalization="zscore"``, missing values filled with the mean);
       batches have shape ``(B, F)`` with ``F = len(feature_names)``.
     - ``survival_interval``: ``[start, stop, event]`` in years
       (``"survival_interval"``); batches have shape ``(B, 3)``.
@@ -242,11 +246,11 @@ def create_synthetic_liver_dataset(
             **generator_kwargs,
         )
     samples = counting_process_samples_from_frame(visits, feature_names, event=event)
-    processor = StandardizedTensorProcessor()
+    processor = TensorProcessor(**FEATURE_PROCESSOR_KWARGS)
     processor.fit(samples, "features")
     return create_sample_dataset(
         samples=samples,
-        input_schema={"features": "standardized_tensor"},
+        input_schema={"features": ("tensor", FEATURE_PROCESSOR_KWARGS)},
         output_schema={"survival_interval": "survival_interval"},
         dataset_name="synthetic_pbcseq",
         task_name="liver_survival_counting_process",

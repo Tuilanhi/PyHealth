@@ -1,4 +1,4 @@
-"""Tests for survival label and standardized feature processors."""
+"""Tests for survival label processors."""
 
 import unittest
 
@@ -6,7 +6,6 @@ import torch
 
 from pyhealth.processors import (
     PROCESSOR_REGISTRY,
-    StandardizedTensorProcessor,
     SurvivalIntervalProcessor,
     SurvivalLabelProcessor,
 )
@@ -63,77 +62,6 @@ class TestSurvivalLabelProcessor(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 processor.process(bad)
         self.assertEqual(processor.size(), 2)
-
-
-class TestStandardizedTensorProcessor(unittest.TestCase):
-    def test_registered_and_learns_statistics(self):
-        self.assertIs(
-            PROCESSOR_REGISTRY["standardized_tensor"], StandardizedTensorProcessor
-        )
-        self.assertTrue(StandardizedTensorProcessor.learns_statistics)
-        self.assertTrue(StandardizedTensorProcessor.stores_tensor)
-
-    def test_zscores_with_fitted_statistics(self):
-        processor = StandardizedTensorProcessor()
-        processor.fit([{"x": [1.0, 10.0]}, {"x": [3.0, 30.0]}], "x")
-        torch.testing.assert_close(
-            processor.process([3.0, 10.0]), torch.tensor([1.0, -1.0])
-        )
-        self.assertEqual(processor.size(), 2)
-        self.assertEqual(processor.dim(), (1,))
-
-    def test_statistics_come_only_from_fit_samples(self):
-        processor = StandardizedTensorProcessor()
-        processor.fit([{"x": [0.0]}, {"x": [2.0]}], "x")
-        # A test-time outlier is transformed, not used to refit.
-        torch.testing.assert_close(processor.process([101.0]), torch.tensor([100.0]))
-
-    def test_missing_values_ignored_in_fit_and_filled_with_mean(self):
-        processor = StandardizedTensorProcessor()
-        processor.fit([{"x": [1.0, NAN]}, {"x": [3.0, 4.0]}, {"x": [NAN, 6.0]}], "x")
-        torch.testing.assert_close(
-            processor.process([NAN, NAN]), torch.tensor([0.0, 0.0])
-        )
-        torch.testing.assert_close(
-            processor.process([1.0, 6.0]), torch.tensor([-1.0, 1.0])
-        )
-
-    def test_constant_feature_is_centered_only(self):
-        processor = StandardizedTensorProcessor()
-        processor.fit([{"x": [5.0]}, {"x": [5.0]}], "x")
-        torch.testing.assert_close(processor.process([7.0]), torch.tensor([2.0]))
-
-    def test_sequence_input(self):
-        processor = StandardizedTensorProcessor()
-        processor.fit([{"x": [[0.0], [2.0]]}, {"x": [[4.0]]}], "x")
-        out = processor.process([[2.0], [NAN]])
-        self.assertEqual(out.shape, (2, 1))
-        torch.testing.assert_close(out, torch.tensor([[0.0], [0.0]]))
-        self.assertEqual(processor.spatial(), (True, False))
-
-    def test_refit_with_other_layout(self):
-        processor = StandardizedTensorProcessor()
-        processor.fit([{"x": [1.0, 2.0]}], "x")
-        processor.fit([{"x": [[1.0, 2.0], [3.0, 4.0]]}], "x")
-        self.assertEqual(processor.dim(), (2,))
-
-    def test_rejects_wrong_rank(self):
-        processor = StandardizedTensorProcessor()
-        processor.fit([{"x": [1.0, 2.0]}], "x")
-        with self.assertRaises(ValueError):
-            processor.process([[1.0, 2.0], [3.0, 4.0]])
-
-    def test_errors(self):
-        processor = StandardizedTensorProcessor()
-        with self.assertRaises(RuntimeError):
-            processor.process([1.0])
-        with self.assertRaises(ValueError):
-            processor.fit([{"y": [1.0]}], "x")
-        with self.assertRaises(ValueError):
-            processor.fit([{"x": [1.0]}, {"x": [1.0, 2.0]}], "x")
-        processor.fit([{"x": [1.0, 2.0]}], "x")
-        with self.assertRaises(ValueError):
-            processor.process([1.0])
 
 
 if __name__ == "__main__":
