@@ -15,6 +15,7 @@ import logging
 
 import numpy as np
 import torch
+from packaging.version import Version
 
 from ..processors import get_processor, IgnoreProcessor
 from ..processors.base_processor import FeatureProcessor
@@ -495,6 +496,7 @@ class SampleDataset(litdata.StreamingDataset):
         path: str,
         dataset_name: Optional[str] = None,
         task_name: Optional[str] = None,
+        delete_on_close: bool = False,
         **kwargs,
     ) -> None:
         """Initialize a SampleDataset pointing at a directory created by SampleBuilder.
@@ -504,6 +506,8 @@ class SampleDataset(litdata.StreamingDataset):
                 `SampleBuilder.save` and associated pickled sample files.
             dataset_name: Optional human-friendly dataset name.
             task_name: Optional human-friendly task name.
+            delete_on_close: Whether ``close()`` should delete ``path``. This is
+                reserved for temporary datasets owned by PyHealth.
             **kwargs: Extra keyword arguments forwarded to
                 `litdata.StreamingDataset` (such as streaming options).
         """
@@ -512,6 +516,7 @@ class SampleDataset(litdata.StreamingDataset):
         self.path = path
         self.dataset_name = "" if dataset_name is None else dataset_name
         self.task_name = "" if task_name is None else task_name
+        self._delete_on_close = delete_on_close
 
         with open(f"{path}/schema.pkl", "rb") as f:
             metadata = pickle.load(f)
@@ -586,7 +591,13 @@ class SampleDataset(litdata.StreamingDataset):
         return f"Sample dataset {self.dataset_name} {self.task_name}"
 
     def subset(self, indices: Union[Sequence[int], slice]) -> "SampleDataset":
-        """Create a StreamingDataset restricted to the provided indices."""
+        """Create a StreamingDataset restricted to the provided indices.
+
+        The subset reads with litdata's POSIX-fast mmap reads turned off
+        (litdata >= 0.2.68). They cache per index run, not per chunk file,
+        which makes a patient-level split ~20x slower to iterate. The full
+        dataset keeps them.
+        """
 
         new_dataset = deepcopy_dataset(self)
 
@@ -658,13 +669,28 @@ class SampleDataset(litdata.StreamingDataset):
         new_dataset.record_to_index = _remap_index_mapping(
             self.record_to_index, indices
         )
+        new_dataset._delete_on_close = False
         new_dataset.reset()
+
+        # The subset lists one (file, region) entry per run of consecutive
+        # indices, so a patient-level split has thousands of entries over a
+        # few chunk files. POSIX-fast caches per entry, not per file: it
+        # re-maps the file and re-parses its offset table for each entry.
+        # Batched decoding stays on: turning it off as well gains nothing,
+        # and with both off litdata <= 0.2.76 cannot random-access chunks
+        # stored in its Arrow-footer layout (Lightning-AI/litData#954).
+        if Version(litdata.__version__) >= Version("0.2.68"):
+            new_dataset.posix_fast = None  # type: ignore
 
         return new_dataset
 
     def close(self) -> None:
         """Cleans up any temporary directories used by the dataset."""
-        if self.input_dir.path is not None and Path(self.input_dir.path).exists():
+        if (
+            self._delete_on_close
+            and self.input_dir.path is not None
+            and Path(self.input_dir.path).exists()
+        ):
             shutil.rmtree(self.input_dir.path)
 
     # --------------------------------------------------------------
@@ -956,4 +982,5 @@ def create_sample_dataset(
             path=str(path),
             dataset_name=dataset_name,
             task_name=task_name,
+            delete_on_close=True,
         )
